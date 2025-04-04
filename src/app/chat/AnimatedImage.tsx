@@ -17,7 +17,7 @@ export default function AnimatedImage({ src, alt }: AnimatedImageProps) {
     img.onload = () => {
       setIsLoaded(true);
       // Add a small delay before removing the loading state for smoother transition
-      setTimeout(() => setIsLoading(false), 500);
+      // setTimeout(() => setIsLoading(false), 500);
     };
   }, [src]);
 
@@ -26,12 +26,12 @@ export default function AnimatedImage({ src, alt }: AnimatedImageProps) {
       <motion.a
         href={src}
         download="generated-image.jpg"
-        className="inline-flex items-center px-3 py-1 text-sm text-white bg-gray-800 rounded-md transition-colors hover:bg-gray-700"
+        className="inline-flex items-center px-3 py-1 text-sm text-white transition-colors bg-gray-800 rounded-md hover:bg-gray-700"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Download className="mr-2 w-4 h-4" />
+        <Download className="w-4 h-4 mr-2" />
         Download Image
       </motion.a>
 
@@ -55,10 +55,10 @@ export default function AnimatedImage({ src, alt }: AnimatedImageProps) {
           alt={alt}
           className="w-full h-full rounded-lg"
           initial={{ opacity: 0, filter: "blur(20px)" }}
-          animate={{
-            opacity: isLoaded ? 1 : 0,
-            filter: isLoaded ? "blur(0px)" : "blur(20px)",
-          }}
+          // animate={{
+          //   opacity: isLoaded ? 1 : 0,
+          //   filter: isLoaded ? "blur(0px)" : "blur(20px)",
+          // }}
           transition={{
             duration: 0.8,
             ease: "easeOut",

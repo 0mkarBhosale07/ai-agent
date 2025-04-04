@@ -79,51 +79,53 @@ const tools: Tool[] = [
     description: "Generate an image based on a text description",
     execute: async (params: { prompt: string }) => {
       try {
-        if (!GEMINI_API_KEY) {
-          throw new Error("GEMINI_API_KEY is not configured");
+        if (!process.env.HUGGINGFACE_API_KEY) {
+          throw new Error("HUGGINGFACE_API_KEY is not configured");
         }
 
         console.log(
-          "Initializing Gemini AI with API key:",
-          GEMINI_API_KEY.substring(0, 10) + "..."
-        );
-        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-
-        console.log("Sending request to Gemini with prompt:", params.prompt);
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash-exp-image-generation",
-          contents: params.prompt,
-          config: {
-            responseModalities: ["Text", "Image"],
-          },
-        });
-
-        console.log(
-          "Received response from Gemini:",
-          JSON.stringify(response, null, 2)
+          "Sending request to Stable Diffusion with prompt:",
+          params.prompt
         );
 
-        if (!response.candidates?.[0]?.content?.parts) {
-          console.error("Invalid response structure:", response);
-          throw new Error("Invalid response from Gemini API");
+        const response = await fetch(
+          "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+            body: JSON.stringify({
+              inputs: params.prompt,
+              parameters: {
+                num_inference_steps: 30,
+                guidance_scale: 7.5,
+                negative_prompt: "blurry, bad quality, distorted, deformed",
+                width: 768,
+                height: 768,
+                num_images_per_prompt: 1,
+              },
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Stable Diffusion API error:", errorText);
+          throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
 
-        // Find the image part in the response
-        const imagePart = response.candidates[0].content.parts.find(
-          (part) => part.inlineData
-        );
+        // Get the binary image data
+        const imageBuffer = await response.arrayBuffer();
+        // Convert to base64
+        const base64Image = Buffer.from(imageBuffer).toString("base64");
 
-        if (!imagePart?.inlineData) {
-          console.error(
-            "No image part found in response:",
-            response.candidates[0].content.parts
-          );
-          throw new Error("No image was generated");
-        }
-
-        const imageData = imagePart.inlineData.data;
-        console.log("Successfully extracted image data");
-        return { image: `data:image/png;base64,${imageData}` };
+        console.log("Successfully generated image with Stable Diffusion");
+        return {
+          image: `data:image/png;base64,${base64Image}`,
+          prompt: params.prompt,
+        };
       } catch (error) {
         console.error("Error in generate_image tool:", error);
         if (error instanceof Error) {

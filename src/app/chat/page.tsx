@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 const components = {
   pre: ({ children, ...props }: any) => (
     <div className="relative">
-      <pre {...props} className="overflow-x-auto p-4 bg-gray-900 rounded-lg">
+      <pre {...props} className="p-4 overflow-x-auto bg-gray-900 rounded-lg">
         {children}
       </pre>
     </div>
@@ -103,7 +103,7 @@ const MessageAvatar = ({
   role: "user" | "assistant";
   userImage?: string | null;
 }) => (
-  <div className="overflow-hidden flex-shrink-0 w-8 h-8 rounded-full">
+  <div className="flex-shrink-0 w-8 h-8 overflow-hidden rounded-full">
     {role === "user" && userImage ? (
       <Image
         src={userImage}
@@ -135,13 +135,13 @@ const QRCodeDisplay = ({ data }: { data: QRCodeData }) => {
       <div className="w-full max-w-[400px]">
         <div className="relative aspect-square">
           <div className="absolute inset-0 bg-gray-800 rounded-lg animate-pulse"></div>
-          <div className="flex absolute inset-0 justify-center items-center">
-            <div className="w-8 h-8 rounded-full border-4 border-white animate-spin border-t-transparent"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-white rounded-full animate-spin border-t-transparent"></div>
           </div>
           <img
             src={data.qrCode}
             alt="UPI QR Code"
-            className="w-full h-full rounded-lg opacity-0 transition-opacity duration-500"
+            className="w-full h-full transition-opacity duration-500 rounded-lg opacity-0"
             onLoad={(e) => {
               e.currentTarget.classList.remove("opacity-0");
               e.currentTarget.classList.add("opacity-100");
@@ -158,10 +158,10 @@ const QRCodeDisplay = ({ data }: { data: QRCodeData }) => {
         <a
           href={data.qrCode}
           download="upi-qr-code.png"
-          className="inline-flex items-center px-3 py-1 mt-2 text-sm text-white bg-gray-800 rounded-md transition-colors hover:bg-gray-700"
+          className="inline-flex items-center px-3 py-1 mt-2 text-sm text-white transition-colors bg-gray-800 rounded-md hover:bg-gray-700"
         >
           <svg
-            className="mr-2 w-4 h-4"
+            className="w-4 h-4 mr-2"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -180,53 +180,91 @@ const QRCodeDisplay = ({ data }: { data: QRCodeData }) => {
   );
 };
 
-// Update Generated Image component with proper typing
+// Add Generated Image component with progressive loading
 const GeneratedImage = ({ data }: { data: GeneratedImageData }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Pre-load the image using the browser's Image constructor
+    const img: HTMLImageElement = new window.Image();
+    img.src = data.image;
+    img.onload = () => {
+      setIsLoading(false);
+      setTimeout(() => {
+        setImageLoaded(true);
+      }, 100);
+    };
+    img.onerror = () => {
+      setError("Failed to load image");
+      setIsLoading(false);
+    };
+  }, [data.image]);
+
   return (
     <div className="flex flex-col items-center space-y-2">
-      <div className="w-full max-w-[400px]">
-        <div className="relative aspect-square">
-          <div className="absolute inset-0 bg-gray-800 rounded-lg animate-pulse"></div>
-          <div className="flex absolute inset-0 justify-center items-center">
-            <div className="w-8 h-8 rounded-full border-4 border-white animate-spin border-t-transparent"></div>
-          </div>
-          <img
-            src={data.image}
-            alt={data.prompt}
-            className="w-full h-full rounded-lg opacity-0 transition-opacity duration-500"
-            onLoad={(e) => {
-              e.currentTarget.classList.remove("opacity-0");
-              e.currentTarget.classList.add("opacity-100");
-              const parent = e.currentTarget.parentElement;
-              if (parent) {
-                const pulse = parent.querySelector(".animate-pulse");
-                const spin = parent.querySelector(".animate-spin");
-                if (pulse) pulse.remove();
-                if (spin) spin.remove();
-              }
-            }}
-          />
+      <div className="w-full max-w-[768px]">
+        <div className="relative overflow-hidden aspect-square rounded-lg bg-gray-900">
+          {/* Loading skeleton */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-gray-800 animate-pulse">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-white rounded-full animate-spin border-t-transparent"></div>
+              </div>
+            </div>
+          )}
+
+          {error ? (
+            <div className="absolute inset-0 flex items-center justify-center text-red-500">
+              {error}
+            </div>
+          ) : (
+            <div
+              className={`relative w-full h-full ${
+                isLoading ? "opacity-0" : "opacity-100"
+              } transition-opacity duration-500`}
+            >
+              {/* Image container */}
+              <div className="relative w-full h-full flex items-center justify-center p-4">
+                <img
+                  src={data.image}
+                  alt={data.prompt}
+                  className={`w-auto h-auto max-w-[400px] max-h-[400px] object-contain rounded-lg transition-all duration-1000 ${
+                    imageLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                  }`}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        <a
-          href={data.image}
-          download="generated-image.png"
-          className="inline-flex items-center px-3 py-1 mt-2 text-sm text-white bg-gray-800 rounded-md transition-colors hover:bg-gray-700"
-        >
-          <svg
-            className="mr-2 w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+
+        {/* Image info and download */}
+        <div className="mt-4 space-y-2">
+          <p className="text-sm text-gray-400">{data.prompt}</p>
+          <a
+            href={data.image}
+            download="generated-image.png"
+            className="inline-flex items-center px-3 py-1 text-sm text-white transition-colors bg-gray-800 rounded-md hover:bg-gray-700"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          Download Image
-        </a>
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+            Download Image
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -304,7 +342,7 @@ function MessageContent({ content, isAssistant = false }: MessageContentProps) {
 
   return (
     <div
-      className="max-w-none prose prose-invert"
+      className="prose max-w-none prose-invert"
       dangerouslySetInnerHTML={{
         __html: DOMPurify.sanitize(formattedContent),
       }}
@@ -349,8 +387,8 @@ export default function ChatPage() {
 
   if (status === "loading") {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-black">
-        <div className="w-12 h-12 rounded-full border-t-2 border-b-2 border-white animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="w-12 h-12 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -584,7 +622,7 @@ export default function ChatPage() {
       {/* Main Chat Area */}
       <div className="flex flex-col flex-1 h-screen">
         {/* Header */}
-        <header className="flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
+        <header className="flex items-center justify-between p-4 bg-gray-900 border-b border-gray-800">
           <h1 className="text-xl font-bold text-white">ReAct Agent</h1>
           <Popover>
             <PopoverTrigger asChild>
@@ -600,9 +638,9 @@ export default function ChatPage() {
                 </Avatar>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="p-2 w-56">
+            <PopoverContent className="w-56 p-2">
               <div className="flex flex-col gap-2">
-                <div className="flex gap-2 items-center p-2">
+                <div className="flex items-center gap-2 p-2">
                   <Avatar className="w-8 h-8">
                     <AvatarImage
                       src={session?.user?.image || ""}
@@ -631,7 +669,7 @@ export default function ChatPage() {
         </header>
 
         {/* Messages */}
-        <div className="overflow-y-auto flex-1 p-4 space-y-4">
+        <div className="flex-1 p-4 space-y-4 overflow-y-auto">
           <AnimatePresence>
             {messages.map((message, index) => (
               <motion.div
@@ -684,7 +722,7 @@ export default function ChatPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Toggle
                 pressed={isDeepSearchEnabled}
@@ -712,14 +750,14 @@ export default function ChatPage() {
                   ? "Ask about weather, todos, or generate an image..."
                   : "Chat with AI or generate an image..."
               }
-              className="flex-1 px-3 py-2 text-sm text-white bg-gray-900 rounded-md border border-gray-700 placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="flex-1 px-3 py-2 text-sm text-white bg-gray-900 border border-gray-700 rounded-md placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               disabled={isLoading || isGeneratingImage}
               whileFocus={{ scale: 1.01 }}
             />
             <motion.button
               type="submit"
               disabled={isLoading || isGeneratingImage}
-              className="inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-md transition-colors hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50"
+              className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white transition-colors bg-gray-800 rounded-md hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -753,7 +791,7 @@ export default function ChatPage() {
                 DeepSearch
               </motion.h2>
             </div>
-            <div className="overflow-y-auto flex-1 p-4">
+            <div className="flex-1 p-4 overflow-y-auto">
               <div ref={searchResultsRef} className="space-y-4 text-sm">
                 <AnimatePresence>
                   {messages.map(
@@ -774,7 +812,7 @@ export default function ChatPage() {
                             {message.searchResults.explanation}
                           </div>
                           <motion.div
-                            className="overflow-x-auto p-2 mt-2 font-mono text-xs bg-gray-800 rounded"
+                            className="p-2 mt-2 overflow-x-auto font-mono text-xs bg-gray-800 rounded"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.3 }}

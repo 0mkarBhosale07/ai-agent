@@ -1,15 +1,14 @@
-import "./globals.css";
-import "./prism-theme.css";
-import "./code-highlight.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { SessionProvider } from "@/components/providers/SessionProvider";
+import "./globals.css";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import Providers from "@/components/providers/session-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AI Chat Assistant",
-  description: "A powerful AI chat assistant with advanced features",
+  title: "ReAct Agent",
+  description: "A powerful AI agent for you!",
 };
 
 export default function RootLayout({
@@ -18,9 +17,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <SessionProvider>{children}</SessionProvider>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
